@@ -24,10 +24,15 @@ void cg::renderer::rasterization_renderer::render()
 		model->get_world_matrix()
 	);
 
-	// lambda function
+	// This is how lambda function in C++ looks like :)
+
 	rasterizer->vertex_shader = [&](float4 vertex, cg::vertex vertex_data) {
 		auto processed = mul(matrix, vertex);
 		return std::make_pair(processed, vertex_data);
+	};
+
+	rasterizer->pixel_shader = [](cg::vertex data, float z) {
+		return cg::color::from_float3(data.ambient);
 	};
 
 	{
@@ -49,7 +54,6 @@ void cg::renderer::rasterization_renderer::render()
 
 	cg::utils::save_resource(*render_target, settings->result_path);
 
-	// TODO Lab: 1.05 Implement `pixel_shader` lambda for the instance of `cg::renderer::rasterizer`
 }
 
 void cg::renderer::rasterization_renderer::destroy() {}
