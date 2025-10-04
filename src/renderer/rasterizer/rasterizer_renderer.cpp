@@ -11,10 +11,11 @@ void cg::renderer::rasterization_renderer::init()
 
 	rasterizer = std::make_shared<cg::renderer::rasterizer<cg::vertex, cg::unsigned_color>>();
 	rasterizer->set_viewport(settings->width, settings->height);
-	render_target = std::make_shared<cg::resource<cg::unsigned_color>>(settings->width, settings->height);
-	rasterizer->set_render_target(render_target);
 
-	// TODO Lab: 1.06 Add depth buffer in `cg::renderer::rasterization_renderer`
+	render_target = std::make_shared<cg::resource<cg::unsigned_color>>(settings->width, settings->height);
+	depth_buffer = std::make_shared<cg::resource<float>>(settings->width, settings->height);
+	rasterizer->set_render_target(render_target, depth_buffer);
+
 }
 void cg::renderer::rasterization_renderer::render()
 {

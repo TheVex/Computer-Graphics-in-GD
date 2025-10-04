@@ -58,7 +58,9 @@ namespace cg::renderer
 		if (in_render_target) {
 			render_target = in_render_target;
 		}
-		// TODO Lab: 1.06 Adjust `set_render_target`, and `clear_render_target` methods of `cg::renderer::rasterizer` class to consume a depth buffer
+		if (in_depth_buffer) {
+			depth_buffer = in_depth_buffer;
+		}
 	}
 
 	template<typename VB, typename RT>
@@ -74,8 +76,8 @@ namespace cg::renderer
 	{
 		for (size_t i=0; i < render_target->count(); i++) {
 			render_target->item(i) = in_clear_value;
+			depth_buffer->item(i) = in_depth;
 		}
-		// TODO Lab: 1.06 Adjust `set_render_target`, and `clear_render_target` methods of `cg::renderer::rasterizer` class to consume a depth buffer
 	}
 
 	template<typename VB, typename RT>
@@ -139,17 +141,25 @@ namespace cg::renderer
 			int2 min_aabb = clamp(min_vertex, min_border, max_border);
 			int2 max_aabb = clamp(max_vertex, min_border, max_border);
 
+			float edge = static_cast<float>(edge_function(vertex_a, vertex_b, vertex_c));
+
+
 			for (int x = min_aabb.x; x <= max_aabb.x; x++) {
 				for (int y = min_aabb.y; y <= max_aabb.y; y++) {
 					int2 point(x, y);
-					int edge0 = edge_function(vertex_a, vertex_b, point);
-					int edge1 = edge_function(vertex_b, vertex_c, point);
-					int edge2 = edge_function(vertex_c, vertex_a, point);
+					
+					float u = static_cast<float>(edge_function(vertex_b, vertex_c, point)) / edge;
+					float v = static_cast<float>(edge_function(vertex_c, vertex_a, point)) / edge;
+					float w = static_cast<float>(edge_function(vertex_a, vertex_b, point)) / edge;
 
-					if (edge0 >= 0 && edge1 >= 0 && edge2 >= 0) {
-						float depth = 1.f;
-						auto result = pixel_shader(vertices[0], depth);
-						render_target->item(x, y) = RT::from_color(result);
+					if (u >= 0.f && v >= 0.f && w >= 0.f) {
+						float depth = u * vertices[0].v.z + v * vertices[1].v.z + w * vertices[2].v.z;
+						if (depth_test(depth, x, y)) {
+							auto result = pixel_shader(vertices[0], depth);
+							render_target->item(x, y) = RT::from_color(result);
+							depth_buffer->item(x, y) = depth;
+						}
+						
 					}
 				}
 			}
