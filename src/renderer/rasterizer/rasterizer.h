@@ -136,7 +136,7 @@ namespace cg::renderer
 			int2 max_border(width-1, height-1);
 			
 			// aabb - Axes Aligned Bounding Box
-			int2 min_aabb = clamp(min_border, min_border, max_border);
+			int2 min_aabb = clamp(min_vertex, min_border, max_border);
 			int2 max_aabb = clamp(max_vertex, min_border, max_border);
 
 			for (int x = min_aabb.x; x <= max_aabb.x; x++) {
@@ -146,8 +146,7 @@ namespace cg::renderer
 					int edge1 = edge_function(vertex_b, vertex_c, point);
 					int edge2 = edge_function(vertex_c, vertex_a, point);
 
-					if ((edge0 >= 0 && edge1 >= 0 && edge2 >= 0)
-					|| (edge0 < 0 && edge1 < 0 && edge2 < 0)) {
+					if (edge0 >= 0 && edge1 >= 0 && edge2 >= 0) {
 						float depth = 1.f;
 						auto result = pixel_shader(vertices[0], depth);
 						render_target->item(x, y) = RT::from_color(result);
