@@ -34,6 +34,8 @@ namespace cg::renderer
 
 		void draw(size_t num_vertexes, size_t vertex_offset);
 
+		void analyzeVertices(const std::vector<int2>& vertices);
+
 		std::function<std::pair<float4, VB>(float4 vertex, VB vertex_data)> vertex_shader;
 		std::function<cg::color(const VB& vertex_data, const float z)> pixel_shader;
 
@@ -45,6 +47,20 @@ namespace cg::renderer
 
 		size_t width = 1920;
 		size_t height = 1080;
+
+		cg::unsigned_color edge_color{
+			.r = 10,
+			.g = 10,
+			.b = 10
+		};
+
+		cg::unsigned_color vertex_color{
+			.r = 255,
+			.g = 10,
+			.b = 10
+		};
+
+		int vertices_draw_radius = 5;
 
 		int edge_function(int2 a, int2 b, int2 c);
 		bool depth_test(float z, size_t x, size_t y);
@@ -94,9 +110,14 @@ namespace cg::renderer
 		index_buffer = in_index_buffer;
 	}
 
+	// Modified to show actual figure's edges and vertices
+
 	template<typename VB, typename RT>
 	inline void rasterizer<VB, RT>::draw(size_t num_vertexes, size_t vertex_offset)
 	{
+		// Vector for storing all vertices
+		std::vector<int2> rendered_vertices;
+
 		size_t vertex_id = vertex_offset;
 		while (vertex_id < vertex_offset + num_vertexes)
 		{
@@ -106,8 +127,10 @@ namespace cg::renderer
 			vertices[0] = vertex_buffer->item(index_buffer->item(vertex_id++));
 			vertices[1] = vertex_buffer->item(index_buffer->item(vertex_id++));
 			vertices[2] = vertex_buffer->item(index_buffer->item(vertex_id++));
+			
 
-			for (auto& vertex : vertices) {
+			for (int i = 0; i < 3; i++) {
+				auto& vertex = vertices[i];
 				float4 coords{vertex.v.x, vertex.v.y, vertex.v.z, 1.f};
 				auto processed = vertex_shader(coords, vertex);
 
@@ -130,6 +153,11 @@ namespace cg::renderer
 			int2 vertex_c(
 				static_cast<int>(vertices[2].v.x),
 				static_cast<int>(vertices[2].v.y));
+												
+			// Add vertices to list
+			rendered_vertices.push_back(vertex_a);
+			rendered_vertices.push_back(vertex_b);
+			rendered_vertices.push_back(vertex_c);
 
 			int2 min_vertex = min(vertex_a, min(vertex_b, vertex_c));
 			int2 max_vertex = max(vertex_a, max(vertex_b, vertex_c));
@@ -142,7 +170,7 @@ namespace cg::renderer
 			int2 max_aabb = clamp(max_vertex, min_border, max_border);
 
 			float edge = static_cast<float>(edge_function(vertex_a, vertex_b, vertex_c));
-
+			
 
 			for (int x = min_aabb.x; x <= max_aabb.x; x++) {
 				for (int y = min_aabb.y; y <= max_aabb.y; y++) {
@@ -156,7 +184,13 @@ namespace cg::renderer
 						float depth = u * vertices[0].v.z + v * vertices[1].v.z + w * vertices[2].v.z;
 						if (depth_test(depth, x, y)) {
 							auto result = pixel_shader(vertices[0], depth);
-							render_target->item(x, y) = RT::from_color(result);
+
+							// If edge, draw with special color, else use material
+							if (u == 0.f || v == 0.f || w == 0.f) {
+								render_target->item(x, y) = edge_color;
+							} else {
+								render_target->item(x, y) = RT::from_color(result);
+							}
 							depth_buffer->item(x, y) = depth;
 						}
 						
@@ -165,14 +199,60 @@ namespace cg::renderer
 			}
 
 		}
+		analyzeVertices(rendered_vertices);
 		
-		// TODO Lab: 1.06 Add `Depth test` stage to `draw` method of `cg::renderer::rasterizer`
+	}
+
+	struct int2_hash {
+    std::size_t operator()(const int2& key) const {
+        // Комбинируем хэши от x и y
+        return std::hash<int>()(key.x) ^ (std::hash<int>()(key.y) << 1);
+		}
+	};
+
+	// Функция сравнения для равенства
+	struct int2_equal {
+		bool operator()(const int2& a, const int2& b) const {
+			return a.x == b.x && a.y == b.y;
+		}
+	};
+
+	// Function that marks object actual vertices on a scene
+	template<typename VB, typename RT>
+	inline void rasterizer<VB, RT>::analyzeVertices(const std::vector<int2>& vertices) {
+		std::unordered_map<int2, int, int2_hash, int2_equal> vertex_count;
+    
+		// Считаем сколько раз встречается каждая вершина
+		for (const auto& vertex : vertices) {
+			vertex_count[vertex]++;
+		}
+
+
+		for (const auto& [vertex, count] : vertex_count) {
+			if (count >= 1) { // Вершина принадлежит нескольким треугольникам
+				int x = vertex.x;
+        		int y = vertex.y;
+
+				for (int dx = -vertices_draw_radius; dx <= vertices_draw_radius; dx++) {
+					for (int dy = -vertices_draw_radius; dy <= vertices_draw_radius; dy++) {
+						int px = x + dx;
+						int py = y + dy;
+						
+						// Проверяем границы экрана
+						if (px >= 0 && static_cast<unsigned int>(px) < width 
+						&& py >= 0 && static_cast<unsigned int>(py) < height) {
+							render_target->item(px, py) = vertex_color;
+						}
+					}
+				}
+			}
+		}
+		
 	}
 
 	// Helps to define at which side of the edge point is placed
 	template<typename VB, typename RT>
-	inline int
-	rasterizer<VB, RT>::edge_function(int2 a, int2 b, int2 c)
+	inline int rasterizer<VB, RT>::edge_function(int2 a, int2 b, int2 c)
 	{
 		return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
 	}

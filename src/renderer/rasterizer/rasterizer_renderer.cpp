@@ -41,9 +41,9 @@ void cg::renderer::rasterization_renderer::render()
 		cg::utils::timer t("Clear");
 
 		rasterizer->clear_render_target(cg::unsigned_color{
-			.r = 0,
-			.g = 0,
-			.b = 255
+			.r = 120,
+			.g = 255,
+			.b = 120
 		});
 	;}
 
