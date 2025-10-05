@@ -205,12 +205,11 @@ namespace cg::renderer
 
 	struct int2_hash {
     std::size_t operator()(const int2& key) const {
-        // Комбинируем хэши от x и y
         return std::hash<int>()(key.x) ^ (std::hash<int>()(key.y) << 1);
 		}
 	};
 
-	// Функция сравнения для равенства
+	// int2 comparator
 	struct int2_equal {
 		bool operator()(const int2& a, const int2& b) const {
 			return a.x == b.x && a.y == b.y;
@@ -222,14 +221,14 @@ namespace cg::renderer
 	inline void rasterizer<VB, RT>::analyzeVertices(const std::vector<int2>& vertices) {
 		std::unordered_map<int2, int, int2_hash, int2_equal> vertex_count;
     
-		// Считаем сколько раз встречается каждая вершина
+		// Counting how many times vertex met
 		for (const auto& vertex : vertices) {
 			vertex_count[vertex]++;
 		}
 
 
 		for (const auto& [vertex, count] : vertex_count) {
-			if (count >= 1) { // Вершина принадлежит нескольким треугольникам
+			if (count >= 1) { // Vertex belong to several polygons
 				int x = vertex.x;
         		int y = vertex.y;
 
@@ -238,7 +237,7 @@ namespace cg::renderer
 						int px = x + dx;
 						int py = y + dy;
 						
-						// Проверяем границы экрана
+						// Checking boundaries
 						if (px >= 0 && static_cast<unsigned int>(px) < width 
 						&& py >= 0 && static_cast<unsigned int>(py) < height) {
 							render_target->item(px, py) = vertex_color;
