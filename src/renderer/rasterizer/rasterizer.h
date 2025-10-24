@@ -110,8 +110,8 @@ namespace cg::renderer
 		index_buffer = in_index_buffer;
 	}
 
-	// Modified to show actual figure's edges and vertices
 
+	// Modified to show actual figure's edges and vertices
 	template<typename VB, typename RT>
 	inline void rasterizer<VB, RT>::draw(size_t num_vertexes, size_t vertex_offset)
 	{
@@ -169,6 +169,8 @@ namespace cg::renderer
 			int2 min_aabb = clamp(min_vertex, min_border, max_border);
 			int2 max_aabb = clamp(max_vertex, min_border, max_border);
 
+			float eps = 1e-2;
+
 			float edge = static_cast<float>(edge_function(vertex_a, vertex_b, vertex_c));
 			
 
@@ -186,7 +188,7 @@ namespace cg::renderer
 							auto result = pixel_shader(vertices[0], depth);
 
 							// If edge, draw with special color, else use material
-							if (u == 0.f || v == 0.f || w == 0.f) {
+							if (u < eps || v < eps || w < eps) {
 								render_target->item(x, y) = edge_color;
 							} else {
 								render_target->item(x, y) = RT::from_color(result);
