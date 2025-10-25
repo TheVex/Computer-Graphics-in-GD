@@ -76,7 +76,7 @@ void cg::renderer::ray_tracing_renderer::render()
 		return payload;
 	};
 
-	shadow_raytracer->build_acceleration_structure();
+	shadow_raytracer->acceleration_structures = raytracer->acceleration_structures;
 
 	{
 		cg::utils::timer t("Ray generation");
@@ -90,6 +90,5 @@ void cg::renderer::ray_tracing_renderer::render()
 
 	cg::utils::save_resource(*render_target, settings->result_path);
 
-	// TODO Lab: 2.05 Adjust `ray_tracing_renderer` class to build the acceleration structure
 	// TODO Lab: 2.06 (Bonus) Adjust `closest_hit_shader` for Monte-Carlo light tracing
 }
