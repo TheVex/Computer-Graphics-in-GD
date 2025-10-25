@@ -220,7 +220,7 @@ namespace cg::renderer
 					payload payload = trace_ray(ray, depth);
 
 					auto& history_pixel = history->item(x, y);
-					history_pixel += payload.color.to_float3() * frame_weight;
+					history_pixel += sqrt(payload.color.to_float3() * frame_weight);
 
 					if (frame_id + 1 == accumulation_num) {
 						render_target->item(x, y) = RT::from_float3(history_pixel);
