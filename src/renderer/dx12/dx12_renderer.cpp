@@ -70,7 +70,7 @@ void cg::renderer::dx12_renderer::initialize_device(ComPtr<IDXGIFactory4>& dxgi_
 {
 	ComPtr<IDXGIAdapter1> hardware_adapter;
 	// 0 - device #0 which corresponds to primary display
-	THROW_IF_FAILED(dxgi_factory->EnumAdapters1(0, &hardware_adapter));
+	THROW_IF_FAILED(dxgi_factory->EnumAdapters1(1, &hardware_adapter));
 
 #ifdef _DEBUG
 	DXGI_ADAPTER_DESC desc{};
@@ -179,7 +179,21 @@ void cg::renderer::dx12_renderer::create_pso()
 
 void cg::renderer::dx12_renderer::create_resource_on_upload_heap(ComPtr<ID3D12Resource>& resource, UINT size, const std::wstring& name)
 {
-	// TODO Lab: 3.03 Implement resource creation on upload heap
+	auto heap_property = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+	auto desc = CD3DX12_RESOURCE_DESC::Buffer(size);
+
+	THROW_IF_FAILED(device->CreateCommittedResource(
+		&heap_property,
+		D3D12_HEAP_FLAG_NONE,
+		&desc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&resource)
+	));
+
+	if (!name.empty()) {
+		resource->SetName(name.c_str());
+	}
 }
 
 void cg::renderer::dx12_renderer::create_resource_on_default_heap(ComPtr<ID3D12Resource>& resource, UINT size, const std::wstring& name, D3D12_RESOURCE_DESC* resource_descriptor)
@@ -188,7 +202,14 @@ void cg::renderer::dx12_renderer::create_resource_on_default_heap(ComPtr<ID3D12R
 
 void cg::renderer::dx12_renderer::copy_data(const void* buffer_data, UINT buffer_size, ComPtr<ID3D12Resource>& destination_resource)
 {
-	// TODO Lab: 3.03 Implement map, unmap, and copying data to the resource
+	UINT8* buffer_data_begin;
+	CD3DX12_RANGE read_range(0, 0);
+	THROW_IF_FAILED(destination_resource->Map(
+		0, &read_range, reinterpret_cast<void**>(&buffer_data_begin)
+	));
+
+	memcpy(buffer_data_begin, buffer_data, buffer_size);
+	destination_resource->Unmap(0, 0);
 }
 
 void cg::renderer::dx12_renderer::copy_data(const void* buffer_data, const UINT buffer_size, ComPtr<ID3D12Resource>& destination_resource, ComPtr<ID3D12Resource>& intermediate_resource, D3D12_RESOURCE_STATES state_after, int row_pitch, int slice_pitch)
@@ -224,9 +245,38 @@ void cg::renderer::dx12_renderer::load_assets()
 
 	// TODO Lab: 3.04 Create a descriptor heap for a constant buffer
 
-	// TODO Lab: 3.03 Allocate memory for vertex and index buffers
-	// TODO Lab: 3.03 Create committed resources for vertex, index and constant buffers on upload heap
-	// TODO Lab: 3.03 Copy resource data to suitable resources
+	const size_t shape_num = model->get_index_buffers().size();
+
+	vertex_buffers.resize(shape_num);
+	index_buffers.resize(shape_num);
+
+	for (size_t i = 0; i < shape_num; i++) {
+		// Vertex buffer
+		auto vb_data = model->get_vertex_buffers()[i];
+		const UINT vb_size = static_cast<UINT>(vb_data->size_bytes());
+		std::wstring vb_name (L"Vertex buffer ");
+		vb_name += std::to_wstring(i);
+		create_resource_on_upload_heap(vertex_buffers[i], vb_size, vb_name);
+		copy_data(vb_data->get_data(), vb_size, vertex_buffers[i]);
+
+		// Index buffer
+		auto ib_data = model->get_index_buffers()[i];
+		const UINT ib_size = static_cast<UINT>(ib_data->size_bytes());
+		std::wstring ib_name (L"Index buffer ");
+		ib_name += std::to_wstring(i);
+		create_resource_on_upload_heap(index_buffers[i], ib_size, ib_name);
+		copy_data(ib_data->get_data(), ib_size, index_buffers[i]);
+	}
+
+	// Constant buffer has fixed size of 64 Kbyte
+	std::wstring cb_name(L"Constant buffer");
+	create_resource_on_upload_heap(constant_buffer, 64*1024, cb_name);
+	copy_data(&cb, sizeof(cb), constant_buffer);
+	CD3DX12_RANGE read_range(0, 0);
+	THROW_IF_FAILED(constant_buffer->Map(
+		0, &read_range, reinterpret_cast<void**>(&constant_buffer_data_begin)
+	));
+
 	// TODO Lab: 3.04 Create vertex buffer views
 	// TODO Lab: 3.04 Create index buffer views
 
