@@ -68,7 +68,7 @@ void cg::renderer::ray_tracing_renderer::render()
 		cg::renderer::ray to_next_object(position, random_direction);
 		auto next_payload = raytracer->trace_ray(to_next_object, depth);
 		result_color += triangle.diffuse * next_payload.color.to_float3() * std::max(dot(normal, to_next_object.direction), 0.f);
-		
+
 		payload.color = cg::color::from_float3(result_color);
 		return payload;
 	};
@@ -99,5 +99,4 @@ void cg::renderer::ray_tracing_renderer::render()
 
 	cg::utils::save_resource(*render_target, settings->result_path);
 
-	// TODO Lab: 2.06 (Bonus) Adjust `closest_hit_shader` for Monte-Carlo light tracing
 }
