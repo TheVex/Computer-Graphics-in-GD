@@ -26,6 +26,7 @@ namespace cg::renderer
 		void move_left(float delta = 0.01f);
 		void move_right(float delta = 0.01f);
 		void move_yaw(float delta = 0.f);
+		void move_yaw_using_radians(float delta);
 		void move_pitch(float delta = 0.f);
 
 		void load_model();

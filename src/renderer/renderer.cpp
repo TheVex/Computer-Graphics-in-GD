@@ -14,6 +14,9 @@
 #include "renderer/dx12/dx12_renderer.h"
 #endif
 
+#define _USE_MATH_DEFINES
+
+#include <math.h>
 
 using namespace cg::renderer;
 
@@ -84,7 +87,11 @@ void cg::renderer::renderer::move_right(float delta)
 
 void cg::renderer::renderer::move_yaw(float delta)
 {
-	camera->set_theta(camera->get_theta() + delta);
+	camera->set_theta(camera->get_theta()  + delta);
+}
+void cg::renderer::renderer::move_yaw_using_radians(float delta)
+{
+	camera->set_theta(camera->get_theta() * 180.0f / M_PI + delta * frame_duration);
 }
 
 void cg::renderer::renderer::move_pitch(float delta)

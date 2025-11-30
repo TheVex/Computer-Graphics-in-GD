@@ -10,6 +10,8 @@ bool window::pressed_a = false;
 bool window::pressed_d = false;
 bool window::pressed_w = false;
 bool window::pressed_s = false;
+bool window::pressed_q = false;
+bool window::pressed_e = false;
 
 int cg::utils::window::run(cg::renderer::renderer* renderer, HINSTANCE hinstance, int ncmdshow)
 {
@@ -78,6 +80,10 @@ LRESULT cg::utils::window::window_proc(HWND hwnd, UINT message, WPARAM wparam, L
 					renderer->move_left(10.f);
 				if (window::pressed_d)
 					renderer->move_right(10.f);
+				if (window::pressed_q)
+					renderer->move_yaw_using_radians(-90);
+				if (window::pressed_e)
+					renderer->move_yaw_using_radians(90);
 				renderer->update();
 				renderer->render();
 			}
@@ -101,6 +107,12 @@ LRESULT cg::utils::window::window_proc(HWND hwnd, UINT message, WPARAM wparam, L
 					case 65:// a
 						window::pressed_a = true;
 						break;
+					case 81: // q
+						window::pressed_q = true;
+						break;
+					case 69: // e
+						window::pressed_e = true;
+						break;
 				}
 			}
 			return 0;
@@ -122,6 +134,12 @@ LRESULT cg::utils::window::window_proc(HWND hwnd, UINT message, WPARAM wparam, L
 						case 65:// a
 							window::pressed_a = false;
 							break;
+						case 81: // q
+							window::pressed_q = false;
+							break;
+						case 69: // e
+							window::pressed_e = false;
+							break;
 					}
 				}
 		}
@@ -138,6 +156,7 @@ LRESULT cg::utils::window::window_proc(HWND hwnd, UINT message, WPARAM wparam, L
 			}
 		}
 			return 0;
+
 
 		case WM_DESTROY:
 			PostQuitMessage(0);
